@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pdfplumber
+python-dotenv
+tricount-api
+pywebview
+# OCR des tickets en image (ex: Lidl, pas d'export PDF possible)
+easyocr

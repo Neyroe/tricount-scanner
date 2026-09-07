@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#6C47FF">
+  <title>Tricount Split</title>
+  <link rel="manifest" href="/manifest.json">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple:  #6C47FF;
+      --purple2: #8B6BFF;
+      --purple-light: #EDE8FF;
+      --bg: #F4F3FA;
+      --surface: #FFFFFF;
+      --border: #EBEBF0;
+      --text: #1A1A2E;
+      --muted: #8E8EA0;
+      --success: #22C55E;
+      --danger: #EF4444;
+    }
+
+    /* Member palette — same order Tricount uses */
+    .m0 { --mc: #FF6B35; } .m1 { --mc: #00BCD4; }
+    .m2 { --mc: #4CAF50; } .m3 { --mc: #9C27B0; }
+    .m4 { --mc: #FF9800; } .m5 { --mc: #2196F3; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ─── HEADER ───────────────────────────────────── */
+    .app-header {
+      background: linear-gradient(135deg, #6C47FF 0%, #9B6BFF 100%);
+      padding: 0 20px;
+      height: 56px;
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 2px 12px rgba(108,71,255,.35);
+    }
+    .app-header svg { flex-shrink: 0; }
+    .app-header-text { flex: 1; min-width: 0; }
+    .app-title { font-size: 1rem; font-weight: 700; color: white; }
+    .app-sub   { font-size: .72rem; color: rgba(255,255,255,.7); margin-top: 1px;
+                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .progress-bar { height: 3px; background: rgba(255,255,255,.25); position: sticky; top: 56px; z-index: 200; }
+    .progress-fill { height: 100%; background: white; transition: width .4s ease; }
+
+    /* ─── SCREENS ──────────────────────────────────── */
+    .page { max-width: 680px; margin: 0 auto; padding: 20px 16px 100px; }
+
+    /* ─── CARD ─────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(108,71,255,.05);
+    }
+    .card-label {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--purple); margin-bottom: 14px;
+    }
+
+    /* ─── INPUT ─────────────────────────────────────── */
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    input[type=text], input[type=url], select {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: .95rem; color: var(--text); background: #FAFAFF;
+      outline: none; transition: border-color .2s; -webkit-appearance: none;
+    }
+    input:focus, select:focus { border-color: var(--purple); }
+
+    /* ─── BUTTONS ──────────────────────────────────── */
+    .btn {
+      display: block; width: 100%; padding: 14px; border: none;
+      border-radius: 12px; font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: opacity .18s, transform .1s; text-align: center;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn-primary { background: linear-gradient(135deg,#6C47FF,#9B6BFF); color: white;
+                   box-shadow: 0 4px 14px rgba(108,71,255,.4); }
+    .btn-ghost   { background: var(--purple-light); color: var(--purple); margin-top: 10px; }
+    .btn-success { background: linear-gradient(135deg,#16A34A,#22C55E); color: white;
+                   box-shadow: 0 4px 14px rgba(34,197,94,.35); }
+
+    /* ─── UPLOAD ────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed #D0C8FF; border-radius: 14px;
+      padding: 40px 20px; text-align: center; background: #FAFAFF;
+      cursor: pointer; transition: all .2s; margin-bottom: 14px;
+    }
+    .drop-zone:hover, .drop-zone.drag {
+      border-color: var(--purple); background: var(--purple-light);
+    }
+    .drop-icon { font-size: 44px; margin-bottom: 10px; }
+    .drop-title { font-weight: 700; color: var(--purple); font-size: .95rem; }
+    .drop-sub   { color: var(--muted); font-size: .8rem; margin-top: 4px; }
+    .drop-file  { margin-top: 10px; font-size: .85rem; font-weight: 600; color: var(--success); }
+
+    /* ─── ALERT ─────────────────────────────────────── */
+    .alert { border-radius: 10px; padding: 11px 14px; font-size: .86rem;
+             margin-bottom: 12px; display: none; }
+    .alert-error { background: #FFF5F5; border: 1.5px solid #FCA5A5; color: var(--danger); }
+
+    /* ─── LOADING ───────────────────────────────────── */
+    .loading { display: none; align-items: center; gap: 10px; justify-content: center; padding: 14px 0; }
+    .spinner { width: 22px; height: 22px; flex-shrink: 0;
+               border: 3px solid var(--purple-light); border-top-color: var(--purple);
+               border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ════════════════════════════════════════════════
+       SUMMARY BAR (sticky below header)
+    ════════════════════════════════════════════════ */
+    .summary-bar {
+      position: sticky; top: 59px; z-index: 100;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+    .summary-inner {
+      max-width: 680px; margin: 0 auto;
+      padding: 10px 16px; display: flex; gap: 8px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .summary-inner::-webkit-scrollbar { display: none; }
+
+    .sum-chip {
+      flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+      background: #FAFAFF; border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 8px 14px;
+    }
+    .sum-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 800; color: white; flex-shrink: 0;
+    }
+    .sum-avatar.shared { background: linear-gradient(135deg,#6C47FF,#9B6BFF); }
+    .sum-avatar.member { background: var(--mc); }
+    .sum-info { line-height: 1.2; }
+    .sum-name   { font-size: .68rem; font-weight: 600; color: var(--muted); }
+    .sum-amount { font-size: .95rem; font-weight: 800; color: var(--text); }
+
+    /* ════════════════════════════════════════════════
+       TICKET NAME EDIT
+    ════════════════════════════════════════════════ */
+    .ticket-name-wrap {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px;
+      background: white; border-bottom: 1px solid var(--border);
+      max-width: 680px; margin: 0 auto;
+      position: sticky; top: calc(59px + 57px); z-index: 99;
+    }
+    .ticket-name-icon { font-size: 20px; flex-shrink: 0; }
+    .ticket-name-input {
+      flex: 1; border: none; background: transparent;
+      font-size: .95rem; font-weight: 700; color: var(--text);
+      outline: none; caret-color: var(--purple);
+    }
+    .ticket-name-input::placeholder { color: var(--muted); font-weight: 500; }
+
+    /* ════════════════════════════════════════════════
+       TABLE
+    ════════════════════════════════════════════════ */
+    .items-body { max-width: 680px; margin: 0 auto; padding: 12px 16px 120px; }
+
+    .cat-section { margin-bottom: 10px; }
+
+    .cat-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: #F8F7FF;
+      border: 1px solid var(--border);
+      border-radius: 12px 12px 0 0;
+    }
+    .cat-name  { flex: 1; font-size: .72rem; font-weight: 700; text-transform: uppercase;
+                 letter-spacing: .06em; color: var(--muted); }
+    .cat-total { font-size: .82rem; font-weight: 700; color: var(--purple); }
+    .cat-bulk  { display: flex; gap: 5px; }
+
+    .bulk-btn {
+      width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+      background: white; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-size: .65rem; font-weight: 800; color: var(--muted);
+      transition: all .15s; flex-shrink: 0;
+    }
+    .bulk-btn.shared { background: var(--purple); border-color: var(--purple); color: white; }
+    .bulk-btn.member { background: var(--mc); border-color: var(--mc); color: white; }
+    .bulk-btn:active { transform: scale(.88); }
+
+    .item-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: white;
+      border: 1px solid var(--border);
+      border-top: none;
+      transition: background .15s;
+    }
+    .item-row:last-child { border-radius: 0 0 12px 12px; }
+
+    .item-info { flex: 1; min-width: 0; }
+    .item-name {
+      font-size: .88rem; font-weight: 500; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .item-price { font-size: .78rem; font-weight: 700; color: var(--purple); margin-top: 2px; }
+
+    .item-assign { display: flex; gap: 5px; flex-shrink: 0; }
+
+    .assign-btn {
+      width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border);
+      background: white; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-size: .7rem; font-weight: 800; color: var(--muted);
+      transition: all .15s; flex-shrink: 0; position: relative;
+    }
+    .assign-btn:active { transform: scale(.85); }
+    .assign-btn.active-shared {
+      background: linear-gradient(135deg,#6C47FF,#9B6BFF);
+      border-color: var(--purple); color: white;
+      box-shadow: 0 2px 8px rgba(108,71,255,.4);
+    }
+    .assign-btn.active-member {
+      background: var(--mc); border-color: var(--mc); color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+
+    /* ─── ACTION BAR ────────────────────────────────── */
+    .action-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; border-top: 1px solid var(--border);
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      z-index: 150;
+    }
+    .action-inner { max-width: 680px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+    .action-inner .field { flex: 1; margin-bottom: 0; }
+    .action-inner select { padding: 11px 12px; }
+    .action-inner .btn  { flex: 0 0 auto; width: auto; padding: 13px 22px; white-space: nowrap; }
+
+    /* ─── SUCCESS ───────────────────────────────────── */
+    .success-hero { text-align: center; padding: 36px 20px 24px; }
+    .success-emoji { font-size: 68px; margin-bottom: 12px; }
+    .success-title { font-size: 1.5rem; font-weight: 800; color: var(--success); }
+    .success-sub   { color: var(--muted); margin-top: 8px; font-size: .9rem; }
+
+    .tx-list { display: flex; flex-direction: column; gap: 12px; }
+    .tx-row  { display: flex; align-items: center; gap: 12px; }
+    .tx-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+                 display: flex; align-items: center; justify-content: center;
+                 font-size: .78rem; font-weight: 800; color: white; }
+    .tx-avatar.shared { background: linear-gradient(135deg,#6C47FF,#9B6BFF); }
+    .tx-avatar.member { background: var(--mc); }
+    .tx-info { flex: 1; min-width: 0; }
+    .tx-desc   { font-weight: 600; font-size: .88rem; white-space: nowrap;
+                 overflow: hidden; text-overflow: ellipsis; }
+    .tx-amount { font-size: .82rem; font-weight: 700; color: var(--purple); margin-top: 2px; }
+
+    /* ─── HOW IT WORKS ──────────────────────────────── */
+    .how-step { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .how-step:last-child { margin-bottom: 0; }
+    .how-num {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      background: var(--purple-light); color: var(--purple);
+      font-size: .78rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .how-text { font-size: .85rem; color: var(--muted); line-height: 1.5; padding-top: 3px; }
+    .how-text strong { color: var(--text); }
+    /* ─── FAB ───────────────────────────────────────── */
+    .fab {
+      position: fixed; bottom: 24px; right: 20px; z-index: 300;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: linear-gradient(135deg,#6C47FF,#9B6BFF);
+      box-shadow: 0 4px 16px rgba(108,71,255,.45);
+      border: none; cursor: pointer; font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .fab:hover  { transform: scale(1.08); box-shadow: 0 6px 20px rgba(108,71,255,.55); }
+    .fab:active { transform: scale(.94); }
+
+    /* ─── Tricount toolbar ──────────────────────────── */
+    .tc-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; gap: 10px;
+    }
+    .btn-icon {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid var(--border); background: white;
+      cursor: pointer; font-size: 1.1rem; display: flex;
+      align-items: center; justify-content: center;
+      transition: all .15s; color: var(--purple);
+    }
+    .btn-icon:hover { background: var(--purple-light); border-color: var(--purple); }
+    .btn-icon.spin  { animation: spin .7s linear infinite; }
+
+    /* ─── Balance chips ─────────────────────────────── */
+    .balance-chips {
+      display: flex; gap: 10px; margin-bottom: 14px;
+      overflow-x: auto; scrollbar-width: none; padding: 2px 0 6px;
+    }
+    .balance-chips::-webkit-scrollbar { display: none; }
+    .balance-chip {
+      flex: 1; min-width: 130px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      background: var(--surface); border-radius: 14px;
+      padding: 14px 16px; text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 2px 8px rgba(108,71,255,.05);
+    }
+    .balance-chip-av {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 800; color: white;
+    }
+    .balance-chip-name   { font-size: .78rem; font-weight: 600; color: var(--muted); }
+    .balance-chip-amount { font-size: 1.15rem; font-weight: 800; margin-top: 1px; }
+    .pos { color: #16A34A; } .neg { color: #EF4444; } .zero { color: var(--muted); }
+
+    /* ─── Section label ─────────────────────────────── */
+    .section-label {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted);
+      margin: 4px 0 10px; padding: 0 2px;
+    }
+
+    /* ─── Transaction cards ─────────────────────────── */
+    .tc-card {
+      background: var(--surface); border-radius: 16px; padding: 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 2px 8px rgba(108,71,255,.04);
+      transition: box-shadow .15s;
+    }
+    .tc-card:hover { box-shadow: 0 2px 14px rgba(108,71,255,.13); }
+    .tc-card-top  { display: flex; align-items: flex-start; gap: 12px; }
+    .tc-card-av   {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 800; color: white;
+    }
+    .tc-card-main  { flex: 1; min-width: 0; }
+    .tc-card-desc  {
+      font-weight: 700; font-size: .9rem; cursor: text;
+      border-radius: 4px; padding: 1px 3px; margin: -1px -3px;
+      transition: background .12s; display: inline-block; max-width: 100%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tc-card-desc:hover  { background: var(--purple-light); }
+    .tc-card-desc:focus  {
+      outline: 2px solid var(--purple); background: white;
+      white-space: normal; overflow: visible; text-overflow: unset;
+    }
+    .tc-card-meta  { font-size: .74rem; color: var(--muted); margin-top: 3px; }
+    .tc-card-right { display: flex; flex-direction: column; align-items: flex-end;
+                     gap: 6px; flex-shrink: 0; }
+    .tc-card-amount { font-size: 1.05rem; font-weight: 800; color: var(--purple);
+                      flex-shrink: 0; }
+    .tc-edit-btn {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid var(--border); background: white;
+      cursor: pointer; font-size: .82rem; display: flex;
+      align-items: center; justify-content: center;
+      transition: all .15s; padding: 0;
+    }
+    .tc-edit-btn:hover { background: var(--purple-light); border-color: var(--purple); }
+    .tc-card-bottom { display: flex; align-items: center; gap: 8px;
+                      flex-wrap: wrap; margin-top: 12px; }
+
+    /* ─── Gallery attachments ───────────────────────── */
+    .gallery-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; background: #FAFAFF; border-radius: 10px;
+      border: 1.5px dashed var(--border); cursor: pointer;
+      font-size: .86rem; font-weight: 600; color: var(--purple);
+      transition: all .15s; margin-bottom: 10px;
+    }
+    .gallery-toggle:hover { border-color: var(--purple); background: var(--purple-light); }
+    .gallery-toggle .gt-arrow { font-size: .7rem; transition: transform .2s; }
+    .gallery-toggle.open .gt-arrow { transform: rotate(180deg); }
+
+    .gallery-grid {
+      display: none; grid-template-columns: repeat(3,1fr); gap: 8px;
+      margin-bottom: 4px;
+    }
+    .gallery-grid.open { display: grid; }
+
+    .gallery-thumb {
+      position: relative; border-radius: 10px; overflow: hidden;
+      aspect-ratio: 1; background: var(--border); cursor: pointer;
+      border: 2px solid transparent; transition: border-color .15s;
+    }
+    .gallery-thumb:hover { border-color: var(--purple); }
+    .gallery-thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .gallery-thumb-overlay {
+      position: absolute; inset: 0; background: rgba(108,71,255,.0);
+      display: flex; align-items: flex-end; padding: 6px;
+      transition: background .15s;
+    }
+    .gallery-thumb:hover .gallery-thumb-overlay { background: rgba(108,71,255,.5); }
+    .gallery-thumb-label {
+      font-size: .65rem; font-weight: 700; color: white;
+      text-shadow: 0 1px 3px rgba(0,0,0,.5); opacity: 0;
+      transition: opacity .15s;
+    }
+    .gallery-thumb:hover .gallery-thumb-label { opacity: 1; }
+    .gallery-dl-btn {
+      position: absolute; top: 5px; right: 5px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(255,255,255,.9); border: none; cursor: pointer;
+      font-size: .8rem; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity .15s; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+    .gallery-thumb:hover .gallery-dl-btn { opacity: 1; }
+    .gallery-empty { color: var(--muted); font-size: .84rem; text-align: center;
+                     padding: 16px; grid-column: 1/-1; }
+
+    /* ─── Category badge ────────────────────────────── */
+    .cat-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 11px; border-radius: 20px;
+      background: var(--purple-light); color: var(--purple);
+      font-size: .73rem; font-weight: 700;
+      border: 1.5px solid transparent; cursor: pointer;
+      transition: all .15s; white-space: nowrap; flex-shrink: 0;
+    }
+    .cat-badge:hover   { border-color: var(--purple); }
+    .cat-badge.saving  { opacity: .55; cursor: default; }
+
+    /* ─── Category picker ───────────────────────────── */
+    .cat-picker {
+      position: fixed; z-index: 1000; display: none;
+      background: white; border-radius: 16px;
+      box-shadow: 0 8px 36px rgba(0,0,0,.2), 0 2px 8px rgba(0,0,0,.08);
+      padding: 8px; width: 252px;
+      grid-template-columns: 1fr 1fr; gap: 4px;
+    }
+    .cat-picker.open { display: grid; }
+    .cat-opt {
+      display: flex; align-items: center; gap: 8px; padding: 9px 11px;
+      border-radius: 10px; cursor: pointer; font-size: .78rem; font-weight: 600;
+      border: none; background: none; text-align: left; transition: background .1s;
+      color: var(--text);
+    }
+    .cat-opt:hover  { background: var(--purple-light); color: var(--purple); }
+    .cat-opt.active { background: var(--purple); color: white; }
+    .cat-opt-icon   { font-size: 1rem; flex-shrink: 0; }
+
+    /* ─── Allocation chips in tx card ───────────────── */
+    .tc-chips  { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tc-chip   {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px 4px 5px; border-radius: 20px;
+      background: #F5F4FF; font-size: .72rem; font-weight: 600; color: var(--text);
+    }
+    .tc-chip-av {
+      width: 18px; height: 18px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .5rem; font-weight: 800; color: white; flex-shrink: 0;
+    }
+
+    /* ─── Toast ─────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 84px; left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: #1A1A2E; color: white;
+      padding: 10px 20px; border-radius: 20px;
+      font-size: .82rem; font-weight: 600; z-index: 2000;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      pointer-events: none; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ─── Transaction attachment thumb ──────────────── */
+    .tx-attach {
+      width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0;
+      overflow: hidden; cursor: pointer; position: relative;
+      border: 1.5px solid var(--border); background: var(--border);
+    }
+    .tx-attach img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .tx-attach::after {
+      content: '✏️'; position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(108,71,255,.5); font-size: 1.1rem;
+      opacity: 0; transition: opacity .15s;
+    }
+    .tx-attach:hover::after { opacity: 1; }
+
+    /* ─── Lightbox ──────────────────────────────────── */
+    #lightbox {
+      position: fixed; inset: 0; z-index: 3000; display: none;
+      background: rgba(0,0,0,.9); align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px; padding: 24px;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img {
+      max-width: 100%; max-height: 78vh; border-radius: 12px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    }
+    .lb-actions { display: flex; gap: 12px; }
+    .lb-btn {
+      padding: 11px 22px; border-radius: 12px; border: none; cursor: pointer;
+      font-size: .9rem; font-weight: 700; transition: opacity .15s;
+    }
+    .lb-btn:hover { opacity: .85; }
+    .lb-btn-dl    { background: linear-gradient(135deg,#6C47FF,#9B6BFF); color: white; }
+    .lb-btn-close { background: rgba(255,255,255,.15); color: white; }
+
+    /* ─── Detail screen ─────────────────────────────── */
+    .detail-photo {
+      width: 100%; max-height: 320px; object-fit: cover;
+      border-radius: 14px; cursor: zoom-in; display: block;
+      background: var(--border); margin-bottom: 4px;
+    }
+    .detail-head {
+      display: flex; align-items: flex-start; gap: 14px; margin-bottom: 4px;
+    }
+    .detail-title { font-size: 1.15rem; font-weight: 800; }
+    .detail-meta  { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+    .detail-total { font-size: 1.4rem; font-weight: 800; color: var(--purple); flex-shrink: 0; }
+
+    /* Detail line editor */
+    .dl-line {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .dl-line:last-child { border-bottom: none; }
+    .dl-name {
+      flex: 1; min-width: 0; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 8px 10px; font-size: .86rem; background: #FAFAFF; outline: none;
+    }
+    .dl-name:focus { border-color: var(--purple); }
+    .dl-price {
+      width: 74px; flex-shrink: 0; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 8px 8px; font-size: .86rem; background: #FAFAFF; outline: none;
+      text-align: right; font-weight: 700; color: var(--purple);
+    }
+    .dl-price:focus { border-color: var(--purple); }
+    .dl-assign { display: flex; gap: 4px; flex-shrink: 0; }
+    .dl-del {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      border: none; background: #FFF0F0; color: var(--danger);
+      cursor: pointer; font-size: .9rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dl-del:hover { background: #FFDADA; }
+
+    .dl-total-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0 4px; font-size: .9rem; font-weight: 700;
+    }
+    .dl-total-warn { color: var(--danger); font-size: .78rem; font-weight: 600; }
+    .dl-total-ok   { color: #16A34A; font-size: .78rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <rect width="28" height="28" rx="8" fill="rgba(255,255,255,.2)"/>
+    <text x="14" y="20" font-size="16" text-anchor="middle" fill="white">🧾</text>
+  </svg>
+  <div class="app-header-text">
+    <div class="app-title">Tricount Split</div>
+    <div class="app-sub" id="app-sub">Importez un ticket, répartissez en 30 s</div>
+  </div>
+</header>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:15%"></div></div>
+
+<!-- ════════════════════════════════════════════════
+     SCREEN — Connect
+════════════════════════════════════════════════ -->
+<div id="screen-connect" class="page">
+  <div class="card">
+    <div class="card-label">Connecter un Tricount</div>
+    <div class="field">
+      <label>Lien de partage</label>
+      <input type="url" id="share-url" placeholder="https://www.tricount.com/…?token=t…"
+             autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="alert alert-error" id="connect-error"></div>
+    <button class="btn btn-primary" id="btn-connect">Connecter →</button>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Comment ça marche</div>
+    <div class="how-step"><div class="how-num">1</div><div class="how-text">Connectez votre <strong>Tricount</strong> via le lien de partage (ou configurez-le dans le .env).</div></div>
+    <div class="how-step"><div class="how-num">2</div><div class="how-text">Importez l'<strong>export PDF ou CSV</strong> de votre ticket (depuis l'appli Mon E.Leclerc, etc.).</div></div>
+    <div class="how-step"><div class="how-num">3</div><div class="how-text">Répartissez chaque article : <strong>Commun</strong> ou par personne, rayon par rayon.</div></div>
+    <div class="how-step"><div class="how-num">4</div><div class="how-text">Validez — les <strong>dépenses sont créées</strong> automatiquement dans votre Tricount.</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SCREEN — Upload
+════════════════════════════════════════════════ -->
+<div id="screen-upload" class="page" style="display:none">
+  <div class="card">
+    <div class="card-label" id="upload-tc-name">Importer le ticket</div>
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Déposer le ticket ici</div>
+      <div class="drop-sub">PDF, image ou CSV exporté depuis l'appli — cliquer pour choisir</div>
+      <div class="drop-file" id="drop-filename"></div>
+    </div>
+    <input type="file" id="csv-input" accept=".csv,.pdf,.png,.jpg,.jpeg,text/csv,application/pdf,image/*" style="display:none">
+    <div class="loading" id="parse-loading">
+      <div class="spinner"></div>
+      <span id="parse-loading-txt" style="color:var(--purple);font-weight:600;font-size:.9rem">Lecture du fichier…</span>
+    </div>
+    <div class="alert alert-error" id="parse-error"></div>
+    <button class="btn btn-primary" id="btn-parse" style="display:none">Analyser →</button>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:.75rem;color:var(--muted);font-weight:600">ou</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+
+    <!-- Gallery from Tricount -->
+    <div class="gallery-toggle" id="gallery-toggle" onclick="toggleGallery()">
+      <span>📎 Photos depuis le Tricount</span>
+      <span class="gt-arrow">▼</span>
+    </div>
+    <div class="loading" id="gallery-loading" style="display:none;padding:12px 0">
+      <div class="spinner"></div>
+      <span style="color:var(--purple);font-weight:600;font-size:.86rem">Chargement…</span>
+    </div>
+    <div class="alert alert-error" id="gallery-error" style="margin-bottom:10px"></div>
+    <div class="gallery-grid" id="gallery-grid"></div>
+
+    <button class="btn btn-ghost" id="btn-back">← Retour au Tricount</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SCREEN — Items (injected dynamically)
+════════════════════════════════════════════════ -->
+<div id="screen-items-root" style="display:none">
+
+  <!-- Summary chips -->
+  <div class="summary-bar">
+    <div class="summary-inner" id="summary-bar"></div>
+  </div>
+
+  <!-- Ticket name -->
+  <div style="background:white;border-bottom:1px solid var(--border);position:sticky;top:116px;z-index:99">
+    <div style="max-width:680px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:18px">✏️</span>
+      <input type="text" id="ticket-name"
+        style="flex:1;border:none;background:transparent;font-size:.95rem;font-weight:700;color:var(--text);outline:none;caret-color:var(--purple)"
+        placeholder="Nom du ticket…">
+    </div>
+  </div>
+
+  <!-- Items table -->
+  <div class="items-body" id="items-body"></div>
+
+  <!-- Action bar -->
+  <div class="action-bar">
+    <div class="action-inner">
+      <div class="field">
+        <label>Qui a payé ?</label>
+        <select id="payer-select"></select>
+      </div>
+      <div>
+        <div class="alert alert-error" id="submit-error" style="margin-bottom:6px"></div>
+        <button class="btn btn-success" id="btn-submit">Ajouter ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SCREEN — Tricount view (écran principal)
+════════════════════════════════════════════════ -->
+<div id="screen-tricount" class="page" style="display:none">
+  <div class="tc-toolbar">
+    <button class="btn btn-primary" id="btn-add-ticket" style="width:auto;padding:11px 20px;margin:0;flex:1;max-width:220px">＋ Ajouter un ticket</button>
+    <button class="btn-icon" id="btn-refresh-tricount" title="Actualiser">↻</button>
+  </div>
+
+  <div class="loading" id="tc-loading" style="padding:40px 0">
+    <div class="spinner"></div>
+    <span style="color:var(--purple);font-weight:600">Chargement…</span>
+  </div>
+  <div class="alert alert-error" id="tc-error"></div>
+
+  <!-- Balances (rendered by JS) -->
+  <div id="tc-balances"></div>
+
+  <!-- Transactions label + cards (rendered by JS) -->
+  <div class="section-label" id="tc-tx-label" style="display:none">20 dernières dépenses</div>
+  <div id="tc-tx-body"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SCREEN — Transaction detail + itemization
+════════════════════════════════════════════════ -->
+<div id="screen-detail" class="page" style="display:none">
+  <button class="btn btn-ghost" id="btn-detail-back" style="width:auto;padding:10px 18px;margin:0 0 14px">← Retour</button>
+
+  <!-- Photo -->
+  <div class="card" id="detail-photo-card" style="display:none;padding:12px">
+    <img class="detail-photo" id="detail-photo" src="" alt="Photo du ticket">
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-ghost" id="detail-zoom" style="margin:0;flex:1">🔍 Agrandir</button>
+      <button class="btn btn-ghost" id="detail-dl" style="margin:0;flex:1">⬇ Télécharger</button>
+    </div>
+  </div>
+
+  <!-- Header info -->
+  <div class="card">
+    <div class="detail-head">
+      <div style="flex:1;min-width:0">
+        <div class="detail-title" id="detail-title"></div>
+        <div class="detail-meta" id="detail-meta"></div>
+      </div>
+      <div class="detail-total" id="detail-total"></div>
+    </div>
+  </div>
+
+  <!-- Itemization editor -->
+  <div class="card">
+    <div class="card-label">Répartir en détail</div>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px;line-height:1.5">
+      Ajoutez chaque ligne du ticket et assignez-la, ou importez un CSV.
+      La répartition sera recalculée et enregistrée sur cette dépense.
+    </div>
+
+    <div class="field" style="margin-bottom:12px">
+      <label>Qui a payé ?</label>
+      <select id="detail-payer"></select>
+    </div>
+
+    <!-- CSV import -->
+    <input type="file" id="detail-csv-input" accept=".csv,.pdf,.png,.jpg,.jpeg,text/csv,application/pdf,image/*" style="display:none">
+    <div class="loading" id="detail-csv-loading" style="display:none;padding:8px 0;justify-content:flex-start">
+      <div class="spinner" style="width:18px;height:18px"></div>
+      <span id="detail-csv-txt" style="color:var(--purple);font-weight:600;font-size:.84rem">Lecture du fichier…</span>
+    </div>
+
+    <div id="detail-lines"></div>
+
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-ghost" id="btn-add-line" style="margin:0;flex:1">＋ Ligne</button>
+      <button class="btn btn-ghost" id="btn-import-csv" style="margin:0;flex:1">📄 Importer PDF/image/CSV</button>
+    </div>
+
+    <div class="dl-total-bar">
+      <span>Total saisi</span>
+      <span id="detail-lines-total">0,00 €</span>
+    </div>
+    <div id="detail-lines-status" style="text-align:center"></div>
+
+    <!-- Per-person summary -->
+    <div class="summary-inner" id="detail-summary" style="padding:14px 0 2px;overflow-x:auto;justify-content:center"></div>
+
+    <div class="alert alert-error" id="detail-error" style="margin-top:12px"></div>
+    <button class="btn btn-success" id="btn-save-resplit" style="margin-top:12px">Enregistrer la répartition ✓</button>
+  </div>
+</div>
+
+<!-- Category picker (shared, repositioned by JS) -->
+<div class="cat-picker" id="cat-picker"></div>
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Lightbox for receipt photos -->
+<div id="lightbox">
+  <img id="lightbox-img" src="" alt="Photo">
+  <div class="lb-actions">
+    <button class="lb-btn lb-btn-dl" id="lb-download">⬇ Télécharger</button>
+    <button class="lb-btn lb-btn-close" id="lb-close">Fermer</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SCREEN — Success
+════════════════════════════════════════════════ -->
+<div id="screen-success" class="page" style="display:none">
+  <div class="card">
+    <div class="success-hero">
+      <div class="success-emoji">🎉</div>
+      <div class="success-title">C'est fait !</div>
+      <div class="success-sub" id="success-sub"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Transactions créées</div>
+    <div class="tx-list" id="tx-list"></div>
+  </div>
+  <button class="btn btn-primary" id="btn-see-tricount" style="margin-bottom:10px">Voir le Tricount ↗</button>
+  <button class="btn btn-ghost" id="btn-new">＋ Nouveau ticket</button>
+</div>
+
+<!-- FAB — Retour au Tricount (visible sur items et upload) -->
+<button class="fab" id="fab-tricount" title="Voir le Tricount" style="display:none">📊</button>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const S = { token:null, name:null, currency:'EUR', members:[], items:[] };
+
+// Member colors (matches CSS .m0–.m5)
+const MC = ['#FF6B35','#00BCD4','#4CAF50','#9C27B0','#FF9800','#2196F3'];
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+function esc(s) { const d=document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
+function fmt(v) { return new Intl.NumberFormat('fr-FR',{style:'currency',currency:S.currency||'EUR'}).format(v); }
+function initials(name) { return name.split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function showAlert(id,msg){ const e=$(id); e.textContent=msg; e.style.display='block'; }
+function hideAlert(id){ $(id).style.display='none'; }
+
+function showScreen(name) {
+  const SCREENS = ['connect','upload','items-root','success','tricount','detail'];
+  SCREENS.forEach(n => {
+    const el = $('screen-'+n);
+    if (el) el.style.display = 'none';
+  });
+  $('screen-'+name).style.display = 'block';
+  window.scrollTo({top:0,behavior:'smooth'});
+  const pct = {connect:15, tricount:30, upload:55, 'items-root':80, success:100, detail:90}[name]||15;
+  $('progress-fill').style.width = pct + '%';
+  // FAB visible sur upload et items (pour revenir au tricount)
+  const fab = $('fab-tricount');
+  if (fab) fab.style.display = ['upload','items-root'].includes(name) ? 'flex' : 'none';
+}
+
+// ─── Auto-connect ─────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res = await fetch('/api/config');
+    const d = await res.json();
+    if (d.preconfigured) {
+      applyTricount(d);
+      showScreen('tricount');
+      loadTricount();
+    }
+  } catch(e) {}
+})();
+
+function applyTricount(d) {
+  S.token=d.token; S.name=d.name; S.currency=d.currency||'EUR'; S.members=d.members;
+  $('upload-tc-name').textContent = d.name;
+  $('app-sub').textContent = d.name;
+  $('payer-select').innerHTML = S.members
+    .map(m=>`<option value="${esc(m.uuid)}">${esc(m.name)}</option>`).join('');
+}
+
+// ─── Connect screen ───────────────────────────────────────────────────────────
+$('btn-connect').addEventListener('click', async () => {
+  const url = $('share-url').value.trim();
+  if (!url) return;
+  const btn = $('btn-connect');
+  hideAlert('connect-error'); btn.disabled=true; btn.textContent='Connexion…';
+  try {
+    const res = await fetch('/api/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({share_url:url})});
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail||'Erreur de connexion');
+    applyTricount(d);
+    showScreen('tricount');
+    loadTricount();
+  } catch(e) { showAlert('connect-error',e.message); }
+  finally { btn.disabled=false; btn.textContent='Connecter →'; }
+});
+
+// ─── Upload screen ────────────────────────────────────────────────────────────
+const dropZone = $('drop-zone');
+const csvInput = $('csv-input');
+let selectedFile = null;
+
+dropZone.addEventListener('click', ()=>csvInput.click());
+dropZone.addEventListener('dragover',  e=>{e.preventDefault();dropZone.classList.add('drag');});
+dropZone.addEventListener('dragleave', ()=>dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e=>{e.preventDefault();dropZone.classList.remove('drag'); if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);});
+csvInput.addEventListener('change', e=>{ if(e.target.files[0]) setFile(e.target.files[0]); });
+
+function setFile(f) {
+  selectedFile = f;
+  $('drop-filename').textContent = '📎 ' + f.name;
+  $('btn-parse').style.display = 'block';
+  hideAlert('parse-error');
+}
+
+function isImageFile(f) {
+  return /^image\//.test(f.type) || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name);
+}
+
+$('btn-parse').addEventListener('click', async ()=>{
+  if (!selectedFile) return;
+  const btn=$('btn-parse'), loading=$('parse-loading');
+  $('parse-loading-txt').textContent = isImageFile(selectedFile)
+    ? 'Analyse de l\'image… (~10 s)' : 'Lecture du fichier…';
+  btn.style.display='none'; loading.style.display='flex'; hideAlert('parse-error');
+  try {
+    const form=new FormData(); form.append('file',selectedFile);
+    const res = await fetch('/api/parse-csv',{method:'POST',body:form});
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail||'Erreur de lecture');
+    S.items = d.items.map(it=>({...it, assigned_to:'shared'}));
+    // Default ticket name from metadata
+    const datePart = d.ticket_date ? d.ticket_date : new Date().toLocaleDateString('fr-FR');
+    const storePart = d.ticket_store || 'Courses';
+    $('ticket-name').value = `${storePart} — ${datePart}`;
+    buildTable();
+    showScreen('items-root');
+    if (d.warning) showToast('⚠ ' + d.warning);
+  } catch(e) { showAlert('parse-error',e.message); btn.style.display='block'; }
+  finally { loading.style.display='none'; }
+});
+
+$('btn-back').addEventListener('click', ()=>showScreen('tricount'));
+
+// ─── Gallery (Tricount attachments) ──────────────────────────────────────────
+let _galleryOpen = false;
+let _galleryLoaded = false;
+
+async function toggleGallery() {
+  const toggle = $('gallery-toggle');
+  const grid   = $('gallery-grid');
+  _galleryOpen = !_galleryOpen;
+  toggle.classList.toggle('open', _galleryOpen);
+  grid.classList.toggle('open', _galleryOpen);
+
+  if (_galleryOpen && !_galleryLoaded) {
+    await loadGallery();
+  }
+}
+
+async function loadGallery() {
+  const loading = $('gallery-loading');
+  const errEl   = $('gallery-error');
+  const grid    = $('gallery-grid');
+
+  loading.style.display = 'flex';
+  errEl.style.display   = 'none';
+  grid.innerHTML        = '';
+
+  try {
+    const res = await fetch('/api/tricount/gallery');
+    const d   = await res.json();
+    if (!res.ok) throw new Error(d.detail || 'Erreur de chargement');
+
+    _galleryLoaded = true;
+
+    if (!d.attachments.length) {
+      grid.innerHTML = '<div class="gallery-empty">Aucune photo dans le Tricount.<br>Ajoutez-en depuis l\'app mobile.</div>';
+      return;
+    }
+
+    grid.innerHTML = d.attachments.map((a, i) => {
+      const proxyUrl  = '/api/tricount/attachment/proxy?url=' + encodeURIComponent(a.thumbnail_url || a.url);
+      const ext       = a.content_type.split('/')[1] || 'jpg';
+      const filename  = `ticket_${i + 1}.${ext}`;
+      return `<div class="gallery-thumb" title="Par ${esc(a.uploader)}">
+        <img src="${proxyUrl}" loading="lazy" alt="Photo ticket">
+        <div class="gallery-thumb-overlay">
+          <span class="gallery-thumb-label">${esc(a.uploader)}</span>
+        </div>
+        <button class="gallery-dl-btn"
+                title="Télécharger"
+                onclick="downloadAttachment(event,'${esc(a.url)}','${esc(filename)}')">⬇</button>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    errEl.textContent   = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+async function downloadAttachment(evt, url, filename) {
+  evt.stopPropagation();
+  const btn = evt.currentTarget;
+  btn.textContent = '…';
+  btn.style.pointerEvents = 'none';
+  try {
+    const res = await fetch('/api/tricount/attachment/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ url, filename }),
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail || 'Erreur');
+    btn.textContent = '✓';
+    showToast('Téléchargé → ' + d.path);
+    setTimeout(() => { btn.textContent = '⬇'; btn.style.pointerEvents = ''; }, 2000);
+  } catch(e) {
+    btn.textContent = '⬇';
+    btn.style.pointerEvents = '';
+    showToast('Erreur : ' + e.message);
+  }
+}
+
+// Reset gallery state when leaving upload screen
+function resetGallery() {
+  _galleryOpen  = false;
+  _galleryLoaded = false;
+  $('gallery-toggle').classList.remove('open');
+  $('gallery-grid').classList.remove('open');
+  $('gallery-grid').innerHTML = '';
+  $('gallery-error').style.display = 'none';
+}
+
+// ─── Items table ──────────────────────────────────────────────────────────────
+function avatarHTML(label, type, colorIdx, activeClass, small=false) {
+  const size = small ? 28 : 32;
+  const fs   = small ? '.65rem' : '.7rem';
+  const bg = type==='shared'
+    ? 'linear-gradient(135deg,#6C47FF,#9B6BFF)'
+    : MC[colorIdx % MC.length];
+  const style = `width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${fs};font-weight:800;color:white;background:${bg};flex-shrink:0`;
+  return `<div style="${style}">${esc(label)}</div>`;
+}
+
+function buildTable() {
+  // Group items by category
+  const cats = {};
+  S.items.forEach((it,idx)=>{
+    if(!cats[it.category]) cats[it.category]=[];
+    cats[it.category].push({...it,_idx:idx});
+  });
+
+  let html = '';
+  for (const [cat, its] of Object.entries(cats)) {
+    const catTotal = its.reduce((s,i)=>s+i.price,0);
+
+    // Bulk buttons
+    let bulkBtns = `<button class="bulk-btn shared" title="Tout en commun" onclick="setCat('${esc(cat)}','shared')">C</button>`;
+    S.members.forEach((m,mi)=>{
+      bulkBtns += `<button class="bulk-btn member m${mi}" title="Tout à ${esc(m.name)}" style="--mc:${MC[mi%MC.length]}" onclick="setCat('${esc(cat)}','${esc(m.uuid)}')">${esc(initials(m.name))}</button>`;
+    });
+
+    html += `<div class="cat-section">
+      <div class="cat-header">
+        <span class="cat-name">${esc(cat)}</span>
+        <span class="cat-total">${fmt(catTotal)}</span>
+        <div class="cat-bulk">${bulkBtns}</div>
+      </div>
+      ${its.map(it => itemRowHTML(it)).join('')}
+    </div>`;
+  }
+  $('items-body').innerHTML = html;
+  updateSummary();
+}
+
+function itemRowHTML(it) {
+  let btns = `<button class="assign-btn ${it.assigned_to==='shared'?'active-shared':''}" onclick="setItem(${it._idx},'shared')" title="Commun" style="font-size:.7rem;font-weight:800">C</button>`;
+  S.members.forEach((m,mi)=>{
+    const active = it.assigned_to===m.uuid ? 'active-member' : '';
+    btns += `<button class="assign-btn ${active} m${mi}" onclick="setItem(${it._idx},'${esc(m.uuid)}')" title="${esc(m.name)}" style="--mc:${MC[mi%MC.length]}">${esc(initials(m.name))}</button>`;
+  });
+  return `<div class="item-row" data-idx="${it._idx}">
+    <div class="item-info">
+      <div class="item-name" title="${esc(it.name)}">${esc(it.name)}</div>
+      <div class="item-price">${fmt(it.price)}</div>
+    </div>
+    <div class="item-assign">${btns}</div>
+  </div>`;
+}
+
+function setItem(idx, to) {
+  S.items[idx].assigned_to = to;
+  const row = document.querySelector(`.item-row[data-idx="${idx}"]`);
+  if (row) {
+    // Re-render just the buttons
+    let btns = `<button class="assign-btn ${to==='shared'?'active-shared':''}" onclick="setItem(${idx},'shared')" title="Commun" style="font-size:.7rem;font-weight:800">C</button>`;
+    S.members.forEach((m,mi)=>{
+      const active = to===m.uuid ? 'active-member' : '';
+      btns += `<button class="assign-btn ${active} m${mi}" onclick="setItem(${idx},'${esc(m.uuid)}')" title="${esc(m.name)}" style="--mc:${MC[mi%MC.length]}">${esc(initials(m.name))}</button>`;
+    });
+    row.querySelector('.item-assign').innerHTML = btns;
+  }
+  updateSummary();
+}
+
+function setCat(catName, to) {
+  S.items.forEach((it,idx)=>{
+    if(it.category!==catName) return;
+    it.assigned_to = to;
+    const row = document.querySelector(`.item-row[data-idx="${idx}"]`);
+    if (row) {
+      let btns = `<button class="assign-btn ${to==='shared'?'active-shared':''}" onclick="setItem(${idx},'shared')" style="font-size:.7rem;font-weight:800">C</button>`;
+      S.members.forEach((m,mi)=>{
+        const active = to===m.uuid?'active-member':'';
+        btns += `<button class="assign-btn ${active} m${mi}" onclick="setItem(${idx},'${esc(m.uuid)}')" style="--mc:${MC[mi%MC.length]}">${esc(initials(m.name))}</button>`;
+      });
+      row.querySelector('.item-assign').innerHTML = btns;
+    }
+  });
+  updateSummary();
+}
+
+function updateSummary() {
+  let shared = 0;
+  const per = {};
+  S.members.forEach(m=>{ per[m.uuid]=0; });
+  S.items.forEach(it=>{
+    if(it.assigned_to==='shared') shared+=it.price;
+    else if(per[it.assigned_to]!==undefined) per[it.assigned_to]+=it.price;
+  });
+  const shareEach = S.members.length ? shared/S.members.length : 0;
+
+  let html = `<div class="sum-chip">
+    <div class="sum-avatar shared">C</div>
+    <div class="sum-info">
+      <div class="sum-name">Commun</div>
+      <div class="sum-amount">${fmt(shared)}</div>
+    </div>
+  </div>`;
+
+  S.members.forEach((m,mi)=>{
+    const total = (per[m.uuid]||0)+shareEach;
+    html += `<div class="sum-chip">
+      <div class="sum-avatar member m${mi}" style="background:${MC[mi%MC.length]}">${esc(initials(m.name))}</div>
+      <div class="sum-info">
+        <div class="sum-name">${esc(m.name)}</div>
+        <div class="sum-amount">${fmt(total)}</div>
+      </div>
+    </div>`;
+  });
+  $('summary-bar').innerHTML = html;
+}
+
+// ─── Submit ───────────────────────────────────────────────────────────────────
+$('btn-submit').addEventListener('click', async ()=>{
+  const payerUuid = $('payer-select').value;
+  const ticketName = $('ticket-name').value.trim() || 'Ticket';
+  const btn=$('btn-submit');
+  hideAlert('submit-error'); btn.disabled=true; btn.textContent='Envoi…';
+  try {
+    const res = await fetch('/api/create-expense',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        tricount_token: S.token,
+        payer_uuid: payerUuid,
+        ticket_name: ticketName,
+        items: S.items.map(i=>({name:i.name,price:i.price,assigned_to:i.assigned_to})),
+      }),
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail||'Erreur lors de la création');
+
+    const payer = S.members.find(m=>m.uuid===payerUuid);
+    const n = d.created.length;
+    $('success-sub').textContent = `${n} transaction${n>1?'s':''} — payé par ${payer?.name||'?'}`;
+
+    const tx = d.created[0];
+    // Header row: full transaction
+    let txHTML = `<div class="tx-row">
+      <div class="tx-avatar shared" style="background:linear-gradient(135deg,#6C47FF,#9B6BFF)">🧾</div>
+      <div class="tx-info">
+        <div class="tx-desc">${esc(tx.description)}</div>
+        <div class="tx-amount">${fmt(tx.amount)} total · Commun ${fmt(tx.shared_total)}</div>
+      </div>
+    </div>`;
+    // Per-member breakdown
+    txHTML += tx.detail.map(d2 => {
+      const mi = S.members.findIndex(m=>m.name===d2.member);
+      const bg = mi>=0 ? MC[mi%MC.length] : '#888';
+      return `<div class="tx-row" style="padding-left:12px;opacity:.85">
+        <div class="tx-avatar member" style="background:${bg};width:28px;height:28px;font-size:.65rem">${esc(initials(d2.member))}</div>
+        <div class="tx-info">
+          <div class="tx-desc" style="font-size:.82rem">${esc(d2.member)}</div>
+          <div class="tx-amount">${fmt(d2.total_owed)}
+            <span style="color:var(--muted);font-weight:500">
+              (perso ${fmt(d2.personal)} + commun ${fmt(d2.shared_part)})
+            </span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    $('tx-list').innerHTML = txHTML;
+    showScreen('success');
+  } catch(e) { showAlert('submit-error',e.message); }
+  finally { btn.disabled=false; btn.textContent='Ajouter ✓'; }
+});
+
+// ─── Success actions ──────────────────────────────────────────────────────────
+$('btn-see-tricount').addEventListener('click', ()=>{
+  showScreen('tricount');
+  loadTricount();
+});
+
+$('btn-new').addEventListener('click', ()=>{
+  S.items=[]; selectedFile=null; csvInput.value='';
+  $('drop-filename').textContent=''; $('btn-parse').style.display='none';
+  hideAlert('parse-error');
+  resetGallery();
+  showScreen('upload');
+});
+
+// ─── Tricount overview ────────────────────────────────────────────────────────
+const CATEGORIES = {
+  GROCERIES:          { label: 'Courses',      icon: '🛒' },
+  FOOD_AND_DRINK:     { label: 'Resto / Bar',  icon: '🍽️' },
+  TRANSPORT:          { label: 'Transport',    icon: '🚗' },
+  ENTERTAINMENT:      { label: 'Loisirs',      icon: '🎬' },
+  HEALTHCARE:         { label: 'Santé',        icon: '💊' },
+  INSURANCE:          { label: 'Assurance',    icon: '🛡️' },
+  RENT_AND_UTILITIES: { label: 'Logement',     icon: '🏠' },
+  SHOPPING:           { label: 'Shopping',     icon: '🛍️' },
+  TRAVEL:             { label: 'Voyage',       icon: '✈️' },
+  OTHER:              { label: 'Autre',        icon: '📦' },
+};
+
+function memberColor(name, uuid) {
+  let idx = S.members.findIndex(m => m.uuid === uuid);
+  if (idx < 0) idx = S.members.findIndex(m => m.name === name);
+  return idx >= 0 ? MC[idx % MC.length] : '#888';
+}
+
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ─── Lightbox (receipt photos) ────────────────────────────────────────────────
+let _lbUrl = null, _lbFilename = null;
+
+function openLightbox(proxyUrl, origUrl, filename) {
+  _lbUrl = origUrl;
+  _lbFilename = filename;
+  $('lightbox-img').src = proxyUrl;
+  $('lightbox').classList.add('open');
+}
+
+function closeLightbox() {
+  $('lightbox').classList.remove('open');
+  $('lightbox-img').src = '';
+  _lbUrl = null;
+}
+
+$('lb-close').addEventListener('click', closeLightbox);
+$('lightbox').addEventListener('click', e => { if (e.target.id === 'lightbox') closeLightbox(); });
+
+$('lb-download').addEventListener('click', async () => {
+  if (!_lbUrl) return;
+  const btn = $('lb-download');
+  const prev = btn.textContent;
+  btn.textContent = 'Téléchargement…';
+  btn.style.pointerEvents = 'none';
+  try {
+    const res = await fetch('/api/tricount/attachment/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ url: _lbUrl, filename: _lbFilename }),
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail || 'Erreur');
+    showToast('Téléchargé → ' + d.path);
+  } catch(e) {
+    showToast('Erreur : ' + e.message);
+  } finally {
+    btn.textContent = prev;
+    btn.style.pointerEvents = '';
+  }
+});
+
+async function loadTricount() {
+  const loading    = $('tc-loading');
+  const errEl      = $('tc-error');
+  const txLabel    = $('tc-tx-label');
+  const refreshBtn = $('btn-refresh-tricount');
+
+  loading.style.display  = 'flex';
+  errEl.style.display    = 'none';
+  txLabel.style.display  = 'none';
+  $('tc-balances').innerHTML = '';
+  $('tc-tx-body').innerHTML  = '';
+  refreshBtn.classList.add('spin');
+
+  try {
+    const res = await fetch('/api/tricount/overview');
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail || 'Erreur de chargement');
+
+    // Cache transactions by id for the detail screen
+    S.txById = {};
+    d.transactions.forEach(tx => { S.txById[tx.id] = tx; });
+
+    const cur  = d.currency || S.currency || 'EUR';
+    const fmtT = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:cur}).format(v);
+
+    // ── Balances ──────────────────────────────────────
+    $('tc-balances').innerHTML = '<div class="balance-chips">'
+      + d.members.map(m => {
+          const color = memberColor(m.name, m.uuid);
+          const cls   = m.balance > 0.005 ? 'pos' : m.balance < -0.005 ? 'neg' : 'zero';
+          const sign  = m.balance > 0.005 ? '+' : '';
+          const sub   = m.balance > 0.005 ? '↑ à recevoir'
+                      : m.balance < -0.005 ? '↓ doit'
+                      : '= équilibré';
+          return `<div class="balance-chip">
+            <div class="balance-chip-av" style="background:${color}">${esc(initials(m.name))}</div>
+            <div class="balance-chip-name">${esc(m.name)}</div>
+            <div class="balance-chip-amount ${cls}">${sign}${fmtT(m.balance)}</div>
+            <div class="balance-chip-name">${sub}</div>
+          </div>`;
+        }).join('')
+      + '</div>';
+
+    // ── Transactions ───────────────────────────────────
+    if (!d.transactions.length) {
+      $('tc-tx-body').innerHTML = '<p style="color:var(--muted);font-size:.88rem;padding:8px 2px">Aucune transaction</p>';
+    } else {
+      txLabel.style.display = 'block';
+      $('tc-tx-body').innerHTML = d.transactions.map(tx => {
+        const color   = memberColor(tx.payer, tx.payer_uuid);
+        const dateStr = tx.date
+          ? new Date(tx.date + 'T00:00:00').toLocaleDateString('fr-FR', {day:'2-digit', month:'short'})
+          : '';
+        const cat   = CATEGORIES[tx.category] || CATEGORIES.OTHER;
+        const chips = tx.allocations.map(a => {
+          const col = memberColor(a.member, '');
+          return `<div class="tc-chip">
+            <div class="tc-chip-av" style="background:${col}">${esc(initials(a.member))}</div>
+            ${esc(a.member)} · ${fmtT(a.amount)}
+          </div>`;
+        }).join('');
+        // Receipt photo thumbnail (first attachment, if any)
+        let attachHTML = '';
+        if (tx.attachments && tx.attachments.length) {
+          const att      = tx.attachments[0];
+          const proxyUrl = '/api/tricount/attachment/proxy?url=' + encodeURIComponent(att.url);
+          attachHTML = `<div class="tx-attach"
+               title="Ouvrir & répartir depuis la photo"
+               onclick="openDetail(${tx.id})">
+            <img src="${proxyUrl}" loading="lazy" alt="Photo">
+          </div>`;
+        }
+        return `<div class="tc-card">
+          <div class="tc-card-top">
+            <div class="tc-card-av" style="background:${color}">${esc(initials(tx.payer))}</div>
+            <div class="tc-card-main">
+              <div class="tc-card-desc"
+                   contenteditable="false"
+                   data-tx="${tx.id}"
+                   data-orig="${esc(tx.description)}"
+                   title="Cliquer pour modifier le nom"
+                   onclick="editDesc(${tx.id}, this)">${esc(tx.description)}</div>
+              <div class="tc-card-meta">${esc(dateStr)} · payé par ${esc(tx.payer)}</div>
+            </div>
+            ${attachHTML}
+            <div class="tc-card-right">
+              <div class="tc-card-amount">${fmtT(tx.amount)}</div>
+              <button class="tc-edit-btn" title="Répartir en détail" onclick="openDetail(${tx.id})">✏️</button>
+            </div>
+          </div>
+          <div class="tc-card-bottom">
+            <button class="cat-badge"
+                    id="cat-${tx.id}"
+                    data-tx="${tx.id}"
+                    data-cat="${tx.category || 'OTHER'}"
+                    onclick="openCatPicker(${tx.id}, this)">${cat.icon} ${cat.label} ▾</button>
+            <div class="tc-chips">${chips}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    errEl.textContent   = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+    refreshBtn.classList.remove('spin');
+  }
+}
+
+// ─── Category picker ──────────────────────────────────────────────────────────
+let _pickerTxId = null;
+
+function openCatPicker(txId, btn) {
+  const picker = $('cat-picker');
+  if (_pickerTxId === txId && picker.classList.contains('open')) {
+    closeCatPicker(); return;
+  }
+  _pickerTxId = txId;
+  const currentCat = btn.dataset.cat || 'OTHER';
+  picker.innerHTML = Object.entries(CATEGORIES).map(([key, c]) =>
+    `<button class="cat-opt ${key === currentCat ? 'active' : ''}"
+             onclick="setCategory(${txId},'${key}')">
+      <span class="cat-opt-icon">${c.icon}</span>${c.label}
+    </button>`
+  ).join('');
+
+  const rect = btn.getBoundingClientRect();
+  picker.style.top  = (rect.bottom + 6) + 'px';
+  picker.style.left = rect.left + 'px';
+  picker.classList.add('open');
+  // keep in viewport
+  const pr = picker.getBoundingClientRect();
+  if (pr.right > window.innerWidth - 8)
+    picker.style.left = (window.innerWidth - pr.width - 8) + 'px';
+  if (pr.bottom > window.innerHeight - 8)
+    picker.style.top = (rect.top - pr.height - 6) + 'px';
+}
+
+function closeCatPicker() {
+  $('cat-picker').classList.remove('open');
+  _pickerTxId = null;
+}
+
+async function setCategory(txId, catKey) {
+  const badge = $('cat-' + txId);
+  if (!badge) return;
+  const prev = badge.dataset.cat;
+  const c    = CATEGORIES[catKey] || CATEGORIES.OTHER;
+  badge.innerHTML   = c.icon + ' ' + c.label + ' ▾';
+  badge.dataset.cat = catKey;
+  badge.classList.add('saving');
+  closeCatPicker();
+  try {
+    const res = await fetch(`/api/tricount/transaction/${txId}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ tricount_token: S.token, category: catKey }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || 'Erreur');
+    badge.classList.remove('saving');
+    showToast('Catégorie mise à jour ✓');
+  } catch(e) {
+    const pc = CATEGORIES[prev] || CATEGORIES.OTHER;
+    badge.innerHTML   = pc.icon + ' ' + pc.label + ' ▾';
+    badge.dataset.cat = prev;
+    badge.classList.remove('saving');
+    showToast('Erreur : ' + e.message);
+  }
+}
+
+document.addEventListener('click', e => {
+  if (!$('cat-picker').classList.contains('open')) return;
+  if (e.target.closest('.cat-badge') || e.target.closest('#cat-picker')) return;
+  closeCatPicker();
+});
+
+// ─── Inline description edit ──────────────────────────────────────────────────
+function editDesc(txId, el) {
+  if (el.contentEditable === 'true') return;
+  const orig = el.dataset.orig;
+  el.contentEditable = 'true';
+  el.focus();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(range);
+
+  const save = async () => {
+    el.contentEditable = 'false';
+    const newDesc = el.textContent.trim();
+    if (!newDesc || newDesc === orig) { el.textContent = orig; return; }
+    el.dataset.orig = newDesc;
+    try {
+      const res = await fetch(`/api/tricount/transaction/${txId}`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tricount_token: S.token, description: newDesc }),
+      });
+      if (!res.ok) throw new Error();
+      showToast('Nom mis à jour ✓');
+    } catch {
+      el.textContent  = orig;
+      el.dataset.orig = orig;
+      showToast('Erreur lors de la mise à jour');
+    }
+  };
+
+  const onKey = e => {
+    if (e.key === 'Enter')  { e.preventDefault(); el.removeEventListener('keydown', onKey); el.blur(); }
+    if (e.key === 'Escape') { el.textContent = orig; el.dataset.orig = orig;
+                              el.removeEventListener('keydown', onKey); el.blur(); }
+  };
+  el.addEventListener('keydown', onKey);
+  el.addEventListener('blur', save, { once: true });
+}
+
+// ─── Tricount screen buttons ──────────────────────────────────────────────────
+$('btn-add-ticket').addEventListener('click', () => showScreen('upload'));
+$('btn-refresh-tricount').addEventListener('click', loadTricount);
+$('fab-tricount').addEventListener('click', () => { showScreen('tricount'); loadTricount(); });
+
+// ─── Detail screen (photo + itemization) ─────────────────────────────────────
+let DT = { txId:null, lines:[], photoUrl:null, photoOrig:null, photoName:null };
+
+function openDetail(txId) {
+  const tx = S.txById && S.txById[txId];
+  if (!tx) return;
+  DT = { txId, lines:[], photoUrl:null, photoOrig:null, photoName:null };
+
+  // Header
+  $('detail-title').textContent = tx.description;
+  const cat = CATEGORIES[tx.category] || CATEGORIES.OTHER;
+  const dateStr = tx.date
+    ? new Date(tx.date + 'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
+    : '';
+  $('detail-meta').textContent = `${cat.icon} ${cat.label} · ${dateStr} · payé par ${tx.payer}`;
+  $('detail-total').textContent = fmt(tx.amount);
+
+  // Photo
+  const photoCard = $('detail-photo-card');
+  if (tx.attachments && tx.attachments.length) {
+    const att = tx.attachments[0];
+    DT.photoUrl  = '/api/tricount/attachment/proxy?url=' + encodeURIComponent(att.url);
+    DT.photoOrig = att.url;
+    const ext    = (att.content_type.split('/')[1] || 'jpg').replace('jpeg','jpg');
+    DT.photoName = `${tx.description.replace(/[^a-z0-9]+/gi,'_').slice(0,40) || 'ticket'}.${ext}`;
+    $('detail-photo').src = DT.photoUrl;
+    photoCard.style.display = 'block';
+  } else {
+    photoCard.style.display = 'none';
+  }
+
+  // Payer select
+  $('detail-payer').innerHTML = S.members
+    .map(m => `<option value="${esc(m.uuid)}" ${m.uuid===tx.payer_uuid?'selected':''}>${esc(m.name)}</option>`)
+    .join('');
+
+  // Start with one empty line
+  DT.lines = [{ name:'', price:'', assigned_to:'shared' }];
+  renderDetailLines();
+  hideAlert('detail-error');
+
+  showScreen('detail');
+}
+
+function renderDetailLines() {
+  const box = $('detail-lines');
+  box.innerHTML = DT.lines.map((ln, i) => {
+    let btns = `<button class="assign-btn ${ln.assigned_to==='shared'?'active-shared':''}"
+                        onclick="setLineAssign(${i},'shared')" title="Commun"
+                        style="width:28px;height:28px;font-size:.62rem">C</button>`;
+    S.members.forEach((m, mi) => {
+      const active = ln.assigned_to===m.uuid ? 'active-member' : '';
+      btns += `<button class="assign-btn ${active} m${mi}"
+                       onclick="setLineAssign(${i},'${esc(m.uuid)}')" title="${esc(m.name)}"
+                       style="--mc:${MC[mi%MC.length]};width:28px;height:28px;font-size:.62rem">${esc(initials(m.name))}</button>`;
+    });
+    return `<div class="dl-line">
+      <input class="dl-name" placeholder="Article…" value="${esc(ln.name)}"
+             oninput="updateLine(${i},'name',this.value)">
+      <input class="dl-price" type="number" step="0.01" inputmode="decimal" placeholder="0,00"
+             value="${esc(ln.price)}" oninput="updateLine(${i},'price',this.value)">
+      <div class="dl-assign">${btns}</div>
+      <button class="dl-del" onclick="removeLine(${i})" title="Supprimer">×</button>
+    </div>`;
+  }).join('');
+  updateDetailSummary();
+}
+
+function updateLine(i, field, value) {
+  DT.lines[i][field] = value;
+  if (field === 'price') updateDetailSummary();  // name change doesn't affect totals
+}
+
+function setLineAssign(i, to) {
+  DT.lines[i].assigned_to = to;
+  renderDetailLines();
+}
+
+function removeLine(i) {
+  DT.lines.splice(i, 1);
+  if (!DT.lines.length) DT.lines.push({ name:'', price:'', assigned_to:'shared' });
+  renderDetailLines();
+}
+
+$('btn-add-line').addEventListener('click', () => {
+  DT.lines.push({ name:'', price:'', assigned_to:'shared' });
+  renderDetailLines();
+  // focus the new line's name input
+  const inputs = $('detail-lines').querySelectorAll('.dl-name');
+  if (inputs.length) inputs[inputs.length-1].focus();
+});
+
+// CSV import inside the detail editor
+$('btn-import-csv').addEventListener('click', () => $('detail-csv-input').click());
+
+$('detail-csv-input').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const loading = $('detail-csv-loading');
+  $('detail-csv-txt').textContent = isImageFile(file)
+    ? 'Analyse de l\'image… (~10 s)' : 'Lecture du fichier…';
+  loading.style.display = 'flex';
+  hideAlert('detail-error');
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/parse-csv', { method:'POST', body:form });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail || 'Erreur de lecture du fichier');
+
+    // Replace empty lines, or append to existing filled ones
+    const hasContent = DT.lines.some(ln => (ln.name||'').trim() || parseFloat(String(ln.price).replace(',','.')) > 0);
+    const imported = d.items.map(it => ({ name: it.name, price: it.price, assigned_to: 'shared' }));
+    DT.lines = hasContent ? DT.lines.concat(imported) : imported;
+    if (!DT.lines.length) DT.lines = [{ name:'', price:'', assigned_to:'shared' }];
+    renderDetailLines();
+    showToast(d.warning ? ('⚠ ' + d.warning) : `${imported.length} ligne(s) importée(s) ✓`);
+  } catch(err) {
+    showAlert('detail-error', err.message);
+  } finally {
+    loading.style.display = 'none';
+    e.target.value = '';  // allow re-importing same file
+  }
+});
+
+function updateDetailSummary() {
+  let shared = 0;
+  const per = {};
+  S.members.forEach(m => per[m.uuid] = 0);
+  let total = 0;
+  DT.lines.forEach(ln => {
+    const p = parseFloat(String(ln.price).replace(',','.')) || 0;
+    total += p;
+    if (ln.assigned_to === 'shared') shared += p;
+    else if (per[ln.assigned_to] !== undefined) per[ln.assigned_to] += p;
+  });
+  const shareEach = S.members.length ? shared/S.members.length : 0;
+
+  $('detail-lines-total').textContent = fmt(total);
+
+  // Per-person chips
+  let html = `<div class="sum-chip">
+    <div class="sum-avatar shared">C</div>
+    <div class="sum-info"><div class="sum-name">Commun</div><div class="sum-amount">${fmt(shared)}</div></div>
+  </div>`;
+  S.members.forEach((m, mi) => {
+    const t = (per[m.uuid]||0) + shareEach;
+    html += `<div class="sum-chip">
+      <div class="sum-avatar member" style="background:${MC[mi%MC.length]}">${esc(initials(m.name))}</div>
+      <div class="sum-info"><div class="sum-name">${esc(m.name)}</div><div class="sum-amount">${fmt(t)}</div></div>
+    </div>`;
+  });
+  $('detail-summary').innerHTML = html;
+
+  // Compare with original transaction amount
+  const tx = S.txById[DT.txId];
+  const status = $('detail-lines-status');
+  if (total <= 0) {
+    status.innerHTML = '';
+  } else if (tx && Math.abs(total - tx.amount) > 0.01) {
+    status.innerHTML = `<span class="dl-total-warn">⚠ Le total saisi (${fmt(total)}) diffère du montant actuel (${fmt(tx.amount)}). Il sera mis à jour.</span>`;
+  } else {
+    status.innerHTML = `<span class="dl-total-ok">✓ Correspond au montant de la dépense</span>`;
+  }
+}
+
+$('btn-detail-back').addEventListener('click', () => { showScreen('tricount'); loadTricount(); });
+
+$('detail-zoom').addEventListener('click', () => {
+  if (DT.photoUrl) openLightbox(DT.photoUrl, DT.photoOrig, DT.photoName);
+});
+$('detail-photo').addEventListener('click', () => {
+  if (DT.photoUrl) openLightbox(DT.photoUrl, DT.photoOrig, DT.photoName);
+});
+$('detail-dl').addEventListener('click', async () => {
+  if (!DT.photoOrig) return;
+  const btn = $('detail-dl');
+  const prev = btn.textContent;
+  btn.textContent = 'Téléchargement…';
+  try {
+    const res = await fetch('/api/tricount/attachment/save', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ url: DT.photoOrig, filename: DT.photoName }),
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail || 'Erreur');
+    showToast('Téléchargé → ' + d.path);
+  } catch(e) { showToast('Erreur : ' + e.message); }
+  finally { btn.textContent = prev; }
+});
+
+$('btn-save-resplit').addEventListener('click', async () => {
+  const items = DT.lines
+    .map(ln => ({
+      name: (ln.name||'').trim() || 'Article',
+      price: parseFloat(String(ln.price).replace(',','.')) || 0,
+      assigned_to: ln.assigned_to,
+    }))
+    .filter(it => it.price > 0);
+
+  if (!items.length) {
+    showAlert('detail-error', 'Ajoutez au moins une ligne avec un prix.');
+    return;
+  }
+
+  const btn = $('btn-save-resplit');
+  hideAlert('detail-error');
+  btn.disabled = true; btn.textContent = 'Enregistrement…';
+  try {
+    const res = await fetch(`/api/tricount/transaction/${DT.txId}/resplit`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ payer_uuid: $('detail-payer').value, items }),
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.detail || 'Erreur');
+    showToast('Répartition enregistrée ✓');
+    showScreen('tricount');
+    loadTricount();
+  } catch(e) {
+    showAlert('detail-error', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Enregistrer la répartition ✓';
+  }
+});
+</script>
+</body>
+</html>
