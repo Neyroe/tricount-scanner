@@ -1,0 +1,6 @@
+# OCR des tickets photo (enseignes sans export PDF/CSV, ex : Lidl).
+# Optionnel et lourd (~2 Go avec PyTorch) — l'application fonctionne sans,
+# l'import d'une image affiche alors un message explicite.
+#
+#   pip install -r requirements-ocr.txt
+easyocr
