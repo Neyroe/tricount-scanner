@@ -1,0 +1,15 @@
+# Secrets & identité locale — ne JAMAIS committer
+.env
+credentials.json
+
+# Tickets de caisse réels (données personnelles)
+cashier_tickets/
+ticket_de_caisse_leclerc.csv
+*.pdf
+!docs/**/*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
