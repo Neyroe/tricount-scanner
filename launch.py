@@ -20,6 +20,19 @@ ROOT = Path(sys.executable).parent if _FROZEN else Path(__file__).resolve().pare
 PORT = int(os.getenv("PORT", "8000"))
 
 
+def enable_unicode_output() -> None:
+    """Autorise les accents et emoji sur les consoles Windows (cp1252 par défaut).
+
+    Sans cela, écrire « 🧾 » dans cmd.exe lève UnicodeEncodeError et l'exécutable
+    s'arrête avant même de démarrer le serveur.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError, ValueError):
+            pass
+
+
 def ensure_env() -> bool:
     """Crée .env depuis .env.example au premier lancement. False si à compléter."""
     env = ROOT / ".env"
@@ -50,6 +63,7 @@ def lan_ip() -> str:
 
 
 def main() -> int:
+    enable_unicode_output()
     os.chdir(ROOT)
     if not ensure_env():
         return 1

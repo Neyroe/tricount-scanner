@@ -212,6 +212,9 @@ app.mount("/", StaticFiles(directory=str(ROOT / "frontend"), html=True), name="f
 
 if __name__ == "__main__":
     import uvicorn
+    from launch import enable_unicode_output
+
+    enable_unicode_output()
     print("\n  🧾  Tricount Scanner — DÉMO (données fictives, aucun appel réseau)")
     print("      http://localhost:8010\n")
     uvicorn.run(app, host="127.0.0.1", port=8010, log_level="warning")
