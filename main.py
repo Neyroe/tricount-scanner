@@ -1,4 +1,6 @@
 import os
+import re
+import sys
 import asyncio
 from pathlib import Path
 from typing import Optional
@@ -13,7 +15,15 @@ from dotenv import load_dotenv
 
 import receipt_parser
 
-load_dotenv()
+# Chemins : en exécutable packagé (PyInstaller), les ressources sont extraites
+# dans un dossier temporaire (_MEIPASS) alors que les fichiers modifiables
+# (.env, credentials.json) doivent vivre à côté de l'exécutable.
+_FROZEN = getattr(sys, "frozen", False)
+BUNDLE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+APP_DIR = Path(sys.executable).parent if _FROZEN else Path(__file__).resolve().parent
+FRONTEND_DIR = BUNDLE_DIR / "frontend"
+
+load_dotenv(APP_DIR / ".env")
 
 app = FastAPI()
 app.add_middleware(
@@ -23,8 +33,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-CREDENTIALS_PATH = Path("credentials.json")
+CREDENTIALS_PATH = APP_DIR / "credentials.json"
 TRICOUNT_URL = os.getenv("tricount_url", "")
+
+# ---------------------------------------------------------------------------
+# Système de fichiers (Windows / macOS / Linux)
+# ---------------------------------------------------------------------------
+
+_WIN_FORBIDDEN = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+
+
+def _downloads_dir() -> Path:
+    """Dossier de téléchargement de l'utilisateur, quel que soit l'OS et la langue.
+
+    Windows : dossier connu du registre (Downloads reste le nom réel du dossier,
+    seul son affichage est traduit). Linux : XDG (« Téléchargements » en français).
+    Repli : ~/Downloads, puis le dossier personnel.
+    """
+    if sys.platform == "win32":
+        try:
+            import winreg
+            guid = "{374DE290-123F-4565-9164-39C4925E467B}"
+            base = r"Software\Microsoft\Windows\CurrentVersion\Explorer"
+            for sub in ("User Shell Folders", "Shell Folders"):
+                try:
+                    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, f"{base}\\{sub}") as k:
+                        path, _ = winreg.QueryValueEx(k, guid)
+                except OSError:
+                    continue
+                if path:
+                    return Path(os.path.expandvars(path))
+        except OSError:
+            pass
+    else:
+        cfg = Path(os.getenv("XDG_CONFIG_HOME") or Path.home() / ".config") / "user-dirs.dirs"
+        try:
+            for line in cfg.read_text(encoding="utf-8").splitlines():
+                if line.startswith("XDG_DOWNLOAD_DIR="):
+                    raw = line.split("=", 1)[1].strip().strip('"')
+                    return Path(os.path.expandvars(raw.replace("$HOME", str(Path.home()))))
+        except OSError:
+            pass
+
+    default = Path.home() / "Downloads"
+    return default if default.exists() else Path.home()
+
+
+def _safe_filename(name: str, fallback: str = "ticket.jpg") -> str:
+    """Nettoie un nom de fichier des caractères interdits (: ? * … sous Windows)."""
+    cleaned = _WIN_FORBIDDEN.sub("-", name).strip(" .")
+    return cleaned[:120] or fallback
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -427,7 +486,7 @@ class SaveAttachmentRequest(BaseModel):
 
 @app.post("/api/tricount/attachment/save")
 async def save_attachment(request: SaveAttachmentRequest):
-    """Download an attachment and save it to ~/Downloads/."""
+    """Download an attachment into the user's Downloads folder."""
     if not TRICOUNT_URL:
         raise HTTPException(status_code=400, detail="tricount_url non configuré")
 
@@ -438,12 +497,13 @@ async def save_attachment(request: SaveAttachmentRequest):
         r = client.session.get(request.url, timeout=30)
         r.raise_for_status()
 
-        downloads = Path.home() / "Downloads"
-        downloads.mkdir(exist_ok=True)
+        downloads = _downloads_dir()
+        downloads.mkdir(parents=True, exist_ok=True)
 
         # Avoid overwriting: add suffix if file exists
-        dest = downloads / request.filename
-        stem, suffix = Path(request.filename).stem, Path(request.filename).suffix
+        filename = _safe_filename(request.filename)
+        dest = downloads / filename
+        stem, suffix = Path(filename).stem, Path(filename).suffix
         counter = 1
         while dest.exists():
             dest = downloads / f"{stem}_{counter}{suffix}"
@@ -570,4 +630,4 @@ async def resplit_transaction(tx_id: int, request: ResplitRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
