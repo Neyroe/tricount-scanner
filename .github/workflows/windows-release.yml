@@ -1,0 +1,63 @@
+name: Build Windows
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Construire l'exécutable
+        run: >
+          pyinstaller --noconfirm --onefile --name TricountScanner
+          --add-data "frontend;frontend"
+          --add-data ".env.example;."
+          --collect-all tricount
+          --collect-submodules uvicorn
+          --collect-submodules pdfplumber
+          --hidden-import main
+          launch.py
+
+      - name: Vérifier que l'exécutable démarre
+        shell: pwsh
+        run: |
+          $env:NO_BROWSER = "1"
+          $p = Start-Process -FilePath dist\TricountScanner.exe -PassThru
+          Start-Sleep -Seconds 25
+          try {
+            $r = Invoke-WebRequest -Uri http://127.0.0.1:8000/ -UseBasicParsing -TimeoutSec 15
+            if ($r.StatusCode -ne 200) { throw "HTTP $($r.StatusCode)" }
+            Write-Host "L'interface répond (HTTP 200)."
+          } finally {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TricountScanner-windows
+          path: dist/TricountScanner.exe
+
+      - name: Publier la release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/TricountScanner.exe
+          generate_release_notes: true

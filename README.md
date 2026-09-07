@@ -61,13 +61,44 @@ déposez `samples/ticket_demo.csv` dans l'écran d'import pour dérouler tout le
 
 ## Utilisation réelle
 
+L'application tourne sous **Windows, macOS et Linux**.
+
+### Windows
+
+Le plus simple : télécharger `TricountScanner.exe` depuis la page
+[Releases](../../releases), le placer dans un dossier et le lancer. Au premier
+démarrage il crée un fichier `.env` à côté de lui : collez-y le lien de partage
+de votre Tricount, relancez, et l'interface s'ouvre dans le navigateur.
+
+Depuis les sources :
+
+```powershell
+copy .env.example .env    # y coller le lien de partage de votre Tricount
+py -3 -m pip install -r requirements.txt
+run.bat                   # ou : py -3 launch.py
+```
+
+### macOS / Linux
+
 ```bash
 cp .env.example .env      # y coller le lien de partage de votre Tricount
 pip install -r requirements.txt
-./run.sh                  # http://localhost:8000 (et l'IP locale, pour le téléphone)
+./run.sh                  # ou : python3 launch.py
 ```
 
-Ou en fenêtre native (pywebview) : `python app.py`.
+Dans les deux cas l'application écoute sur `http://localhost:8000` et affiche
+aussi son adresse sur le réseau local, pour l'ouvrir depuis le téléphone
+(même Wi-Fi) et l'installer en PWA.
+
+En fenêtre native plutôt que dans le navigateur : `python app.py`
+(nécessite `pywebview` ; sous Windows, `pythonnet` et le runtime WebView2).
+
+### OCR des tickets photo (optionnel)
+
+Les exports PDF/CSV n'ont besoin de rien de plus. Pour lire une **photo** de
+ticket, installez en plus `pip install -r requirements-ocr.txt` (~2 Go avec
+PyTorch). Sans cela, l'import d'une image affiche simplement un message
+expliquant d'utiliser un export PDF ou CSV.
 
 ## Architecture
 
@@ -78,6 +109,7 @@ Ou en fenêtre native (pywebview) : `python app.py`.
 | `receipt_ocr.py` | OCR local des tickets photo, avec validation par le total imprimé |
 | `frontend/index.html` | Interface complète (une page, sans build ni framework), utilisable comme PWA sur mobile |
 | `demo/demo_server.py` | Mode démo hors ligne, données fictives |
+| `launch.py` | Lanceur multiplateforme (`run.sh` sous Linux/macOS, `run.bat` sous Windows) |
 | `app.py` | Lancement en fenêtre native |
 
 ## Vie privée

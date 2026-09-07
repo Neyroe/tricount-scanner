@@ -7,8 +7,19 @@ import os
 import threading
 import time
 import socket
-import webview
 import uvicorn
+
+try:
+    import webview
+except ImportError as exc:  # pywebview absent ou backend indisponible
+    print(
+        "Fenêtre native indisponible (" + str(exc) + ").\n"
+        "Installez pywebview (sous Windows : pip install pywebview pythonnet, "
+        "avec le runtime WebView2), ou lancez l'application dans le navigateur :\n"
+        "  python launch.py",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
 
 # Always run from the project directory so relative paths work
 os.chdir(os.path.dirname(os.path.abspath(__file__)))

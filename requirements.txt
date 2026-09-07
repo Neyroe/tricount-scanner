@@ -4,6 +4,8 @@ python-multipart
 pdfplumber
 python-dotenv
 tricount-api
+
+# Fenêtre native (app.py) — optionnel, le mode navigateur n'en a pas besoin.
 pywebview
-# OCR des tickets en image (ex: Lidl, pas d'export PDF possible)
-easyocr
+# Backend WebView2 de pywebview sous Windows.
+pythonnet>=3.0 ; sys_platform == "win32"
